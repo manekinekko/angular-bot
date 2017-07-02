@@ -1,0 +1,17 @@
+<section #section [ngClass]="{'me': display !== 'row'}">
+    <div>
+        <img [src]="model.user.photoURL">
+        <div>
+            <p class="message">{{ model.message }}</p><br/>
+            <span [hidden]="display !== 'row'" class="date" [title]="model.user.email">{{ model.user.displayName }} • </span><span class="date" title="{{model.date | date:'yyyy-mm-ddTHH:mm:ss.sssZ'}}">{{ model.date | date:'MMM d, hh:mm a' }}</span>
+        </div>
+    </div>
+    <a [href]="model.url.href" *ngIf="model.url" target="__blank">
+        <!--<img *ngIf="model.url.img" [src]="model.url.img" alt="{{model.url.description}}">-->
+        <p>
+            <b>{{model.url.title}}</b><br/>
+            <span>{{model.url.description}}</span><br/>
+            <i>{{model.url.href}}</i>
+        </p>
+    </a>
+</section>

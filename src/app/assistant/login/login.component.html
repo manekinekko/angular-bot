@@ -1,0 +1,33 @@
+<md-card>
+    <md-card-header *ngIf="user.uid">
+        <div md-card-avatar>
+            <img *ngIf="user.photoURL" [src]="user.photoURL">
+        </div>
+        <md-card-title>{{user.displayName}}</md-card-title>
+        <md-card-subtitle>{{user.email}}</md-card-subtitle>
+    </md-card-header>
+    <md-card-content *ngIf="!user.uid">
+        <button (click)="authService.logout()" md-raised-button *ngIf="(authService.afAuth.authState | async) as user; else LoginTpl">Logout</button>
+    </md-card-content>
+    <md-card-actions>
+        <p>Use your email/password to sign in</p>
+        <section>
+            <form #loginForm="ngForm">
+                <md-input-container>
+                    <input required name="email" [(ngModel)]="userCred.email" mdInput placeholder="User email" type="email">
+                </md-input-container>
+                <md-input-container>
+                    <input required name="password" [(ngModel)]="userCred.password" type="password" mdInput placeholder="User password">
+                </md-input-container>
+                <button [disabled]="loginForm.invalid" class="login-btn email" md-raised-button (click)="authService.login('email', userCred)">Sign In</button>
+            </form>
+        </section>
+    </md-card-actions>
+</md-card>
+
+<ng-template #LoginTpl>
+    <button class="login-btn google" md-button (click)="authService.login('google')">
+        <img src="assets/google-logo.png" alt="google officila logo">
+        Login with Google
+    </button>
+</ng-template>

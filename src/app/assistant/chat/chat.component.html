@@ -1,0 +1,7 @@
+<section>
+
+    <app-chat-list [user]="authService.getUser()" [messageList]="thread"></app-chat-list>
+    <span #scrollerRef></span>
+    <app-chat-input (message)="sendMessage($event)"></app-chat-input>
+
+</section>

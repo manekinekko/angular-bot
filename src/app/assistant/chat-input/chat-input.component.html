@@ -1,0 +1,6 @@
+<md-input-container>
+    <input mdInput placeholder="Enter your text here..." #text type="text" (keyup.enter)="send(text.value)">
+</md-input-container>
+<button (click)="send(text.value)" md-icon-button [disabled]="text.value === ''">
+	<md-icon>send</md-icon>
+</button>

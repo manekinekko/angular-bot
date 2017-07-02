@@ -1,0 +1,43 @@
+md-card {
+    max-width: 360px;
+    margin: auto;
+}
+
+div[md-card-avatar] {
+    overflow: hidden;
+    img {
+        height: 40px;
+        width: 40px;
+    }
+}
+
+section {
+    display: flex;
+    flex-direction: column
+}
+
+md-card-actions {
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid lightgrey;
+}
+
+md-input-container {
+    width: 100%;
+}
+
+.login-btn {
+    &[md-button],
+    &[md-raised-button] {
+        margin: 4px;
+        width: 100%;
+        &.google {
+            color: #F2553B;
+            border: 1px solid;
+            img {
+                width: 20px;
+                height: 20px;
+            }
+        }
+    }
+}
