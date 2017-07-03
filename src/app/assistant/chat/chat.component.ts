@@ -6,7 +6,7 @@ import {
   AngularFireDatabase
 } from "angularfire2/database";
 
-class Message {
+export class Message {
   constructor(
     public user: User,
     public date: number,
