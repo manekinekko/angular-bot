@@ -30,7 +30,7 @@ export class ChatComponent implements OnInit, AfterViewInit {
   constructor(
     private db: AngularFireDatabase,
     private bot: BotService,
-    private authService: AuthService
+    public authService: AuthService
   ) {
   }
 

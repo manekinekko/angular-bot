@@ -9,7 +9,7 @@ import { Component } from '@angular/core';
 })
 export class AppComponent {
   constructor(
-    private authService: AuthService
+    public authService: AuthService
   ) {
     
   }

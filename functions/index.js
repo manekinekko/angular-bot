@@ -85,6 +85,16 @@ function upcomingEventsNext(app) {
         .catch(e => console.error(e));
 }
 
+function search(app) {
+    const searchType = app.getArgument('search-type');
+    const searchKeyword = app.getArgument('search-keyword');
+    if (searchType === 'library') {
+        return searchForLibrary(app);
+    } else {
+        return searchByKeyword(app);
+    }
+}
+
 function searchByKeyword(app) {
     const search = app.getArgument('search');
     fetch(SEARCH_API, {
@@ -119,6 +129,27 @@ function searchByKeyword(app) {
         .catch(e => console.error(e));
 }
 
+function searchForLibrary(app) {
+    const keyword = app.getArgument('keyword');
+    fetch(NPM_SEARCH_API.replace('#', keyword))
+        .then(res => res.json())
+        .then(res => {
+            if (res && res.results && res.results.length > 0) {
+                const entry = res.results[(Math.random() * res.results.length) | 0];
+                return buildUrlCard(entry.package.links.repository, entry);
+            }
+            return null;
+        })
+        .then(entry => {
+            if (entry) {
+                app.data.url = entry.url;
+                app.ask(`I found this package on NPM: ${entry.result.package.name} - ${entry.result.package.description} (${entry.result.package.links.repository}).`);
+            } else {
+                app.ask(`Sorry. I could not find any library matching your request.`);
+            }
+        })
+}
+
 function checkVersion(app) {
     fetch(DOC_API)
         .then(res => res.json())
@@ -128,34 +159,12 @@ function checkVersion(app) {
         .catch(e => console.error(e));
 }
 
-function searchForLibrary(app) {
-    const keyword = app.getArgument('keyword');
-    fetch(NPM_SEARCH_API.replace('#', keyword))
-        .then(res => res.json())
-        .then(res => {
-            if (res && res.results && res.results.length > 0) {
-                const entry = res.results[(Math.random() * res.result.length) | 0];
-                return buildUrlCard(entry.package.links.repository, entry);
-            }
-            return null;
-        })
-        .then(entry => {
-            if (entry) {
-                app.data.url = entry.url;
-                app.ask(`I found this package on NPM: ${entry.package.name} - ${entry.package.description} (${entry.package.links.repository}).`);
-            } else {
-                app.ask(`Sorry. I could not find any library matching your request.`);
-            }
-        })
-}
-
 exports.assistant = functions.https.onRequest((request, response) => {
     const app = new App({ request, response });
     let actionMap = new Map();
     actionMap.set('upcoming-events', upcomingEvents);
     actionMap.set('upcoming-events.next', upcomingEventsNext);
-    actionMap.set('search.keyword', searchByKeyword);
-    actionMap.set('search.library', searchForLibrary);
+    actionMap.set('search', search);
     actionMap.set('check-version', checkVersion);
     app.handleRequest(actionMap);
 });
