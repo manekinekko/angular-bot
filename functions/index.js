@@ -6,6 +6,7 @@ const cheerio = require('cheerio');
 
 const EVENTS_API = `https://angular.io/generated/docs/events.json`;
 const SEARCH_API = `http://ngdoc.io/api/articles/search`;
+const DOC_API = `https://angular.io/generated/navigation.json`;
 
 function buildUrlCard(url, result) {
     if (url) {
@@ -117,11 +118,21 @@ function searchByKeyword(app) {
         .catch(e => console.error(e));
 }
 
+function checkVersion(app) {
+    fetch(DOC_API)
+        .then(res => res.json())
+        .then(res => {
+            app.ask(`The current version of Angular is: ${res.__versionInfo.version}.`)
+        })
+        .catch(e => console.error(e));
+}
+
 exports.assistant = functions.https.onRequest((request, response) => {
     const app = new App({ request, response });
     let actionMap = new Map();
     actionMap.set('upcoming-events', upcomingEvents);
     actionMap.set('upcoming-events.next', upcomingEventsNext);
     actionMap.set('search-by.keyword', searchByKeyword);
+    actionMap.set('check-version', checkVersion);
     app.handleRequest(actionMap);
 });
