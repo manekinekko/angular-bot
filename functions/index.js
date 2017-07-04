@@ -7,6 +7,7 @@ const cheerio = require('cheerio');
 const EVENTS_API = `https://angular.io/generated/docs/events.json`;
 const SEARCH_API = `http://ngdoc.io/api/articles/search`;
 const DOC_API = `https://angular.io/generated/navigation.json`;
+const NPM_SEARCH_API = `https://api.npms.io/v2/search?q=#+popularity-weight:10+keywords:ng2,angular2,angular,-angularjs`;
 
 function buildUrlCard(url, result) {
     if (url) {
@@ -127,12 +128,34 @@ function checkVersion(app) {
         .catch(e => console.error(e));
 }
 
+function searchForLibrary(app) {
+    const keyword = app.getArgument('keyword');
+    fetch(NPM_SEARCH_API.replace('#', keyword))
+        .then(res => res.json())
+        .then(res => {
+            if (res && res.results && res.results.length > 0) {
+                const entry = res.results[(Math.random() * res.result.length) | 0];
+                return buildUrlCard(entry.package.links.repository, entry);
+            }
+            return null;
+        })
+        .then(entry => {
+            if (entry) {
+                app.data.url = entry.url;
+                app.ask(`I found this package on NPM: ${entry.package.name} - ${entry.package.description} (${entry.package.links.repository}).`);
+            } else {
+                app.ask(`Sorry. I could not find any library matching your request.`);
+            }
+        })
+}
+
 exports.assistant = functions.https.onRequest((request, response) => {
     const app = new App({ request, response });
     let actionMap = new Map();
     actionMap.set('upcoming-events', upcomingEvents);
     actionMap.set('upcoming-events.next', upcomingEventsNext);
-    actionMap.set('search-by.keyword', searchByKeyword);
+    actionMap.set('search.keyword', searchByKeyword);
+    actionMap.set('search.library', searchForLibrary);
     actionMap.set('check-version', checkVersion);
     app.handleRequest(actionMap);
 });
