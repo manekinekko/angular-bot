@@ -9,6 +9,12 @@ const SEARCH_API = `http://ngdoc.io/api/articles/search`;
 const DOC_API = `https://angular.io/generated/navigation.json`;
 const NPM_SEARCH_API = `https://api.npms.io/v2/search?q=#+popularity-weight:10+keywords:ng2,angular2,angular,-angularjs`;
 
+const NO_INPUTS = [
+    `I didn't hear that.`,
+    `If you're still there, say that again.`,
+    `We can stop here. See you soon.`
+];
+
 function buildUrlCard(url, result) {
     if (url) {
         return fetch(url)
@@ -56,12 +62,18 @@ function upcomingEvents(app) {
     getEvent(0)
         .then(data => {
             console.log('upcomingEvents::getting data', data);
-            if (data.url) {
-                app.data.url = data.url;
-            }
 
-            app.data.currentEventIndex = 1;
-            app.ask(`According the angular.io, the Angular team will be presenting at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]} (${data.url.href}).`);
+            if (data) {
+                if (data.url) {
+                    app.data.url = data.url;
+                }
+
+                app.data.currentEventIndex = 1;
+                app.ask(`According the angular.io, the Angular team will be presenting at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]} (${data.url.href}).`, NO_INPUTS);
+            } else {
+                app.data.url = null;
+                app.tell(`There are no upcoming events.`);
+            }
         })
         .catch(e => console.error(e));
 }
@@ -70,16 +82,17 @@ function upcomingEventsNext(app) {
     getEvent(app.data.currentEventIndex ||  0)
         .then(data => {
             console.log('upcomingEventsNext::getting data', data);
+
             if (data) {
                 if (data.url) {
                     app.data.url = data.url;
                 }
 
                 app.data.currentEventIndex++;
-                app.ask(`The Core team is going to be at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]} (${data.url.href}).`);
+                app.ask(`The Core team is going to be at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]} (${data.url.href}).`, NO_INPUTS);
             } else {
                 app.data.url = null;
-                app.ask(`There are no more upcoming events.`);
+                app.tell(`There are no more upcoming events.`);
             }
         })
         .catch(e => console.error(e));
@@ -89,21 +102,20 @@ function search(app) {
     const searchType = app.getArgument('search-type');
     const searchKeyword = app.getArgument('search-keyword');
     if (searchType === 'library') {
-        return searchForLibrary(app);
+        return searchForLibrary(app, searchKeyword);
     } else {
-        return searchByKeyword(app);
+        return searchByArticle(app, searchKeyword);
     }
 }
 
-function searchByKeyword(app) {
-    const search = app.getArgument('search');
+function searchByArticle(app, searchKeyword) {
     fetch(SEARCH_API, {
             method: 'POST',
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                "keywords": search,
+                "keywords": searchKeyword,
                 "version": "2+",
                 "tags": []
             })
@@ -116,22 +128,46 @@ function searchByKeyword(app) {
             }
             return null;
         })
-        .then(data => {
-            console.log('search results', data);
+        .then(entry => {
+            console.log('found an article', entry);
 
-            if (data) {
-                app.data.url = data.url;
-                app.ask(`I just checked ngdoc.io and found this article by ${data.result.author_name}: "${data.result.title}" (${data.url.href}).`);
+            if (entry) {
+                const responsePrefix = `I found this article by ${entry.result.author_name}:`;
+                const response = `${responsePrefix} ${entry.result.title}.`;
+
+                app.data.url = entry.url;
+                console.log('setting article url info', app.data.url);
+
+                if (app.hasSurfaceCapability(app.SurfaceCapabilities.SCREEN_OUTPUT)) {
+
+                    app.ask(
+                        app.buildRichResponse()
+                        .addSimpleResponse(response)
+                        .addBasicCard(
+                            app.buildBasicCard(entry.url.description)
+                            .setTitle(`${entry.result.title} by ${entry.result.author_name}`)
+                            .addButton('Visit the website', entry.url.href)
+                            .setImage(entry.url.img, entry.url.img)
+                        )
+                    );
+
+                } else if (app.hasSurfaceCapability(app.SurfaceCapabilities.AUDIO_OUTPUT)) {
+                    app.ask(`${response}`, NO_INPUTS);
+                } else {
+                    app.ask(`${response} (${entry.url.href})`, NO_INPUTS);
+                }
+
             } else {
-                app.ask(`Sorry. I could not find anything related to ${search}. Try another request.`);
+                console.log('no article found', entry);
+                app.data.url = null;
+                app.tell(`Sorry. I could not find anything related to ${search}. Try another request.`);
             }
         })
         .catch(e => console.error(e));
 }
 
-function searchForLibrary(app) {
-    const keyword = app.getArgument('keyword');
-    fetch(NPM_SEARCH_API.replace('#', keyword))
+function searchForLibrary(app, searchKeyword) {
+    fetch(NPM_SEARCH_API.replace('#', searchKeyword))
         .then(res => res.json())
         .then(res => {
             if (res && res.results && res.results.length > 0) {
@@ -141,13 +177,41 @@ function searchForLibrary(app) {
             return null;
         })
         .then(entry => {
+
             if (entry) {
+                console.log('found a library', entry);
+
+                const response = `I found this package on NPM: ${entry.result.package.name} - ${entry.result.package.description}.`;
+
                 app.data.url = entry.url;
-                app.ask(`I found this package on NPM: ${entry.result.package.name} - ${entry.result.package.description} (${entry.result.package.links.repository}).`);
+                console.log('setting library url info', app.data.url);
+
+                if (app.hasSurfaceCapability(app.SurfaceCapabilities.SCREEN_OUTPUT)) {
+
+                    app.ask(
+                        app.buildRichResponse()
+                        .addSimpleResponse(response)
+                        .addBasicCard(
+                            app.buildBasicCard(entry.result.package.description)
+                            .setTitle(`${entry.url.title}`)
+                            .addButton('Visit the repository', entry.url.href)
+                            .setImage('https://crossbrowsertesting.com/design/images/github-logo.png', entry.url.href)
+                        )
+                    );
+
+                } else if (app.hasSurfaceCapability(app.SurfaceCapabilities.AUDIO_OUTPUT)) {
+                    app.ask(`${response}`, NO_INPUTS);
+                } else {
+                    app.ask(`${response} (${entry.url.href})`, NO_INPUTS);
+                }
+
             } else {
-                app.ask(`Sorry. I could not find any library matching your request.`);
+                console.log('no library found', entry);
+                app.data.url = null;
+                app.tell(`Sorry. I could not find any library matching your request.`);
             }
         })
+        .catch(e => console.error(e));
 }
 
 function checkVersion(app) {
@@ -159,6 +223,23 @@ function checkVersion(app) {
         .catch(e => console.error(e));
 }
 
+function eg(app) {
+    if (app.hasSurfaceCapability(app.SurfaceCapabilities.AUDIO_OUTPUT)) {
+        app.ask(`
+            <speak>Shy is a rock star! <emphasis>Put your hands up in the air.</emphasis>
+                <audio src="https://storage.googleapis.com/angular-bot-12202.appspot.com/ng-show.mp3"></audio>
+            </speak>
+        `);
+    } else {
+        app.data.url = {
+            href: 'https://www.youtube.com/watch?v=aSFfLVxT5vA&t=48s',
+            title: 'The ng-show: Angular 2 - Shai Reznik',
+            description: ''
+        };
+        app.ask(`Shy is a rock star! Put your hands up in the air. (https://www.youtube.com/watch?v=aSFfLVxT5vA&t=48s)`);
+    }
+}
+
 exports.assistant = functions.https.onRequest((request, response) => {
     const app = new App({ request, response });
     let actionMap = new Map();
@@ -166,5 +247,6 @@ exports.assistant = functions.https.onRequest((request, response) => {
     actionMap.set('upcoming-events.next', upcomingEventsNext);
     actionMap.set('search', search);
     actionMap.set('check-version', checkVersion);
+    actionMap.set('eg', eg);
     app.handleRequest(actionMap);
 });
