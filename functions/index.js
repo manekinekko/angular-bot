@@ -160,7 +160,7 @@ function searchByArticle(app, searchKeyword) {
             } else {
                 console.log('no article found', entry);
                 app.data.url = null;
-                app.tell(`Sorry. I could not find anything related to ${search}. Try another request.`);
+                app.tell(`Sorry. I could not find anything related to ${searchKeyword}. Try another request.`);
             }
         })
         .catch(e => console.error(e));
