@@ -69,7 +69,7 @@ function upcomingEvents(app) {
                 }
 
                 app.data.currentEventIndex = 1;
-                app.ask(`According the angular.io, the Angular team will be presenting at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]} (${data.url.href}).`, NO_INPUTS);
+                app.tell(`According the angular.io, the Angular team will be presenting at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]} (${data.url.href}).`, NO_INPUTS);
             } else {
                 app.data.url = null;
                 app.tell(`There are no upcoming events.`);
@@ -89,7 +89,7 @@ function upcomingEventsNext(app) {
                 }
 
                 app.data.currentEventIndex++;
-                app.ask(`The Core team is going to be at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]} (${data.url.href}).`, NO_INPUTS);
+                app.tell(`The Core team is going to be at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]} (${data.url.href}).`, NO_INPUTS);
             } else {
                 app.data.url = null;
                 app.tell(`There are no more upcoming events.`);
@@ -140,7 +140,7 @@ function searchByArticle(app, searchKeyword) {
 
                 if (app.hasSurfaceCapability(app.SurfaceCapabilities.SCREEN_OUTPUT)) {
 
-                    app.ask(
+                    app.tell(
                         app.buildRichResponse()
                         .addSimpleResponse(response)
                         .addBasicCard(
@@ -152,9 +152,9 @@ function searchByArticle(app, searchKeyword) {
                     );
 
                 } else if (app.hasSurfaceCapability(app.SurfaceCapabilities.AUDIO_OUTPUT)) {
-                    app.ask(`${response}`, NO_INPUTS);
+                    app.tell(`${response}`, NO_INPUTS);
                 } else {
-                    app.ask(`${response} (${entry.url.href})`, NO_INPUTS);
+                    app.tell(`${response} (${entry.url.href})`, NO_INPUTS);
                 }
 
             } else {
@@ -188,7 +188,7 @@ function searchForLibrary(app, searchKeyword) {
 
                 if (app.hasSurfaceCapability(app.SurfaceCapabilities.SCREEN_OUTPUT)) {
 
-                    app.ask(
+                    app.tell(
                         app.buildRichResponse()
                         .addSimpleResponse(response)
                         .addBasicCard(
@@ -200,9 +200,9 @@ function searchForLibrary(app, searchKeyword) {
                     );
 
                 } else if (app.hasSurfaceCapability(app.SurfaceCapabilities.AUDIO_OUTPUT)) {
-                    app.ask(`${response}`, NO_INPUTS);
+                    app.tell(`${response}`, NO_INPUTS);
                 } else {
-                    app.ask(`${response} (${entry.url.href})`, NO_INPUTS);
+                    app.tell(`${response} (${entry.url.href})`, NO_INPUTS);
                 }
 
             } else {
@@ -218,14 +218,14 @@ function checkVersion(app) {
     fetch(DOC_API)
         .then(res => res.json())
         .then(res => {
-            app.ask(`The current version of Angular is: ${res.__versionInfo.version}.`)
+            app.tell(`The current version of Angular is: ${res.__versionInfo.version}.`)
         })
         .catch(e => console.error(e));
 }
 
 function eg(app) {
     if (app.hasSurfaceCapability(app.SurfaceCapabilities.AUDIO_OUTPUT)) {
-        app.ask(`
+        app.tell(`
             <speak>Shy is a rock star! <emphasis>Put your hands up in the air.</emphasis>
                 <audio src="https://storage.googleapis.com/angular-bot-12202.appspot.com/ng-show.mp3"></audio>
             </speak>
@@ -236,7 +236,7 @@ function eg(app) {
             title: 'The ng-show: Angular 2 - Shai Reznik',
             description: ''
         };
-        app.ask(`Shy is a rock star! Put your hands up in the air. (https://www.youtube.com/watch?v=aSFfLVxT5vA&t=48s)`);
+        app.tell(`Shy is a rock star! Put your hands up in the air. (https://www.youtube.com/watch?v=aSFfLVxT5vA&t=48s)`);
     }
 }
 
