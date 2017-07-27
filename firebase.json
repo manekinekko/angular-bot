@@ -1,8 +1,12 @@
 {
-  "database": {
-    "rules": "database.rules.json"
-  },
-  "hosting": {
-    "public": "dist"
-  }
+    "database": {
+        "rules": "database.rules.json"
+    },
+    "hosting": {
+        "public": "dist",
+        "rewrites": [{
+            "source": "/privacy-policy.html",
+            "destination": "/assets/privacy-policy.html"
+        }]
+    }
 }
