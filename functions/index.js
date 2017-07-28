@@ -68,8 +68,13 @@ function upcomingEvents(app) {
                     app.data.url = data.url;
                 }
 
+                if (app.hasSurfaceCapability(app.SurfaceCapabilities.SCREEN_OUTPUT)) {
+                    app.tell(`According the angular.io, the Angular team will be presenting at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]} (${data.url.href}).`, NO_INPUTS);
+                } else {
+                    app.tell(`According the angular.io, the Angular team will be presenting at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]}.`, NO_INPUTS);
+                }
+
                 app.data.currentEventIndex = 1;
-                app.tell(`According the angular.io, the Angular team will be presenting at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]} (${data.url.href}).`, NO_INPUTS);
             } else {
                 app.data.url = null;
                 app.tell(`There are no upcoming events.`);
@@ -88,8 +93,13 @@ function upcomingEventsNext(app) {
                     app.data.url = data.url;
                 }
 
+                if (app.hasSurfaceCapability(app.SurfaceCapabilities.SCREEN_OUTPUT)) {
+                    app.tell(`The Core team is going to be at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]} (${data.url.href}).`, NO_INPUTS);
+                } else {
+                    app.tell(`The Core team is going to be at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]}.`, NO_INPUTS);
+                }
+
                 app.data.currentEventIndex++;
-                app.tell(`The Core team is going to be at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]} (${data.url.href}).`, NO_INPUTS);
             } else {
                 app.data.url = null;
                 app.tell(`There are no more upcoming events.`);
