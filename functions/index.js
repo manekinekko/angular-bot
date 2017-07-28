@@ -3,7 +3,9 @@ const functions = require("firebase-functions");
 const App = require('actions-on-google').ApiAiApp;
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
+const crypto = require('crypto');
 
+const CONTRIBUTORS_API = `https://angular.io/generated/contributors.json`;
 const EVENTS_API = `https://angular.io/generated/docs/events.json`;
 const SEARCH_API = `http://ngdoc.io/api/articles/search`;
 const DOC_API = `https://angular.io/generated/navigation.json`;
@@ -14,6 +16,10 @@ const NO_INPUTS = [
     `If you're still there, say that again.`,
     `We can stop here. See you soon.`
 ];
+
+function _hash(str) {
+    return crypto.createHash('sha256').update(str, 'utf8').digest('hex');
+}
 
 function buildUrlCard(url, result) {
     if (url) {
@@ -249,6 +255,96 @@ function checkVersion(app) {
         .catch(e => console.error(e));
 }
 
+function contributors(group, title) {
+
+    return function(app) {
+        return fetch(CONTRIBUTORS_API)
+            .then(res => res.json())
+            .then(data => {
+                const members = Object.keys(data)
+                    .map(k => data[k])
+                    .filter(arr => arr.group === group)
+
+                console.log('team members', group, members);
+
+                function r() {
+                    const i = (Math.random() * members.length - 1) | 0;
+                    const rand = members.slice(i, i + 1);
+                    return rand[0];
+                }
+
+                const response = `Alright! I found ${members.length} members on the ${group} team`;
+
+                if (app.hasSurfaceCapability(app.SurfaceCapabilities.SCREEN_OUTPUT)) {
+                    let list = app.buildList(title);
+
+                    for (let i = 0; i < members.length; i++) {
+                        const t = members[i];
+
+                        list = list.addItems(
+                            // app.buildOptionItem(`CONTRIBUTOR_${_hash(t.name)}`)
+                            app.buildOptionItem(t.name, [t.name])
+                            .setTitle(t.name)
+                            .setDescription(t.bio)
+                            .setImage(`https://angular.io/generated/images/bios/${t.picture}`, `${t.name}'s picture`)
+                        );
+
+                        console.log('builing list with member', t);
+                    }
+
+                    app.askWithList(`${response}. Which team member were you looking for?`, list);
+
+                } else {
+                    app.tell(`${response}. Here are 3 of them: ${r().name}, ${r().name} and ${r().name}. Visit angular.io/about to discover more of them.`, NO_INPUTS);
+                }
+            })
+            .catch(e => console.error(e));
+    }
+}
+
+function contributorsOption(app) {
+    // let selectedContribName = app.getSelectedOption();
+    let selectedContribName = app.getContextArgument('actions_intent_option', 'OPTION').value;
+    console.log('selected member', selectedContribName);
+
+    if (selectedContribName.indexOf('CONTRIBUTOR_') !== 0) {
+        const selectedContribHash = selectedContribName.replace('CONTRIBUTOR_', '');
+
+        fetch(CONTRIBUTORS_API)
+            .then(res => res.json())
+            .then(data => {
+                const member = Object.keys(data)
+                    .map(k => data[k])
+                    .filter(o => o.name === selectedContribName)
+                    .pop();
+
+                console.log('found selected member', member);
+
+                if (app.hasSurfaceCapability(app.SurfaceCapabilities.SCREEN_OUTPUT)) {
+                    const twitterUrl = `https://twitter.com/${member.twitter}`;
+
+                    app.tell(
+                        app.buildRichResponse()
+                        .addSimpleResponse(`${member.bio}`)
+                        .addBasicCard(
+                            app.buildBasicCard(member.name)
+                            .addButton('Visit Twitter', twitterUrl)
+                            .setImage(`https://angular.io/generated/images/bios/${member.picture}`, `${member.name}'s picture`)
+                        )
+                    );
+
+                } else {
+                    app.tell(`${member.bio}`, NO_INPUTS);
+                }
+            })
+            .catch(e => console.error(e));
+
+    } else {
+        app.tell("Sorry, I could not find this memeber's bio. Make sure you've selected the right option from the list.");
+    }
+}
+
+
 function eg(app) {
     if (app.hasSurfaceCapability(app.SurfaceCapabilities.AUDIO_OUTPUT)) {
         app.tell(`
@@ -269,10 +365,13 @@ function eg(app) {
 exports.assistant = functions.https.onRequest((request, response) => {
     const app = new App({ request, response });
     let actionMap = new Map();
-    actionMap.set('upcoming-events', upcomingEvents);
-    actionMap.set('upcoming-events.next', upcomingEventsNext);
-    actionMap.set('search', search);
-    actionMap.set('check-version', checkVersion);
-    actionMap.set('eg', eg);
+    actionMap.set('_angular.upcoming_events', upcomingEvents);
+    actionMap.set('_angular.upcoming_events:next', upcomingEventsNext);
+    actionMap.set('_angular.search', search);
+    actionMap.set('_angular.check_version', checkVersion);
+    actionMap.set('_angular.core_team', contributors('Angular', 'The Angular Core Team'));
+    actionMap.set('_angular.gde_team', contributors('GDE', 'The Angular GDE Team'));
+    actionMap.set('actions.intent.OPTION', contributorsOption);
+    actionMap.set('_angular.eg', eg);
     app.handleRequest(actionMap);
 });
