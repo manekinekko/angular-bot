@@ -69,7 +69,15 @@ function upcomingEvents(app) {
                 }
 
                 if (app.hasSurfaceCapability(app.SurfaceCapabilities.SCREEN_OUTPUT)) {
-                    app.tell(`According the angular.io, the Angular team will be presenting at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]} (${data.url.href}).`, NO_INPUTS);
+                    const response = `According the angular.io, the Angular team will be presenting at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]}`;
+                    app.tell(
+                        app.buildRichResponse()
+                        .addSimpleResponse(response)
+                        .addBasicCard(
+                            app.buildBasicCard(response)
+                            .addButton('Visit the website', data.url.href)
+                        )
+                    );
                 } else {
                     app.tell(`According the angular.io, the Angular team will be presenting at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]}.`, NO_INPUTS);
                 }
@@ -94,7 +102,15 @@ function upcomingEventsNext(app) {
                 }
 
                 if (app.hasSurfaceCapability(app.SurfaceCapabilities.SCREEN_OUTPUT)) {
-                    app.tell(`The Core team is going to be at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]} (${data.url.href}).`, NO_INPUTS);
+                    const response = `The Core team is going to be at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]}`;
+                    app.tell(
+                        app.buildRichResponse()
+                        .addSimpleResponse(response)
+                        .addBasicCard(
+                            app.buildBasicCard(response)
+                            .addButton('Visit the website', data.url.href)
+                        )
+                    );
                 } else {
                     app.tell(`The Core team is going to be at ${data.result[0]}, in ${data.result[1]}, on ${data.result[2]}.`, NO_INPUTS);
                 }
