@@ -17,6 +17,14 @@ const NO_INPUTS = [
     `We can stop here. See you soon.`
 ];
 
+function printErrorMessage() {
+    const msg = [
+        'Sorry, I can not give you an answer right now. Please try again.',
+        'Sorry, something went wrong. Please try again.',
+    ];
+    return msg[(Math.random() * msg.length) |  0];
+}
+
 function _hash(str) {
     return crypto.createHash('sha256').update(str, 'utf8').digest('hex');
 }
@@ -28,8 +36,13 @@ function buildUrlCard(url, result) {
             .then(txt => {
                 const $ = cheerio.load(txt);
                 let img = $('img').attr('src');
-                if (img && img.startsWith('http') === false) {
-                    img = url + img;
+
+                if (url.startsWith('https://www.youtube.com')) {
+                    img = 'https://i.ytimg.com/vi/s5y-4EpmfRQ/maxresdefault.jpg';
+                } else {
+                    if (img && img.startsWith('http') === false) {
+                        img = url + img;
+                    }
                 }
 
                 return {
@@ -94,7 +107,11 @@ function upcomingEvents(app) {
                 app.tell(`There are no upcoming events.`);
             }
         })
-        .catch(e => console.error(e));
+        .catch(e => {
+            console.error(e);
+
+            app.tell(printErrorMessage());
+        });
 }
 
 function upcomingEventsNext(app) {
@@ -127,31 +144,39 @@ function upcomingEventsNext(app) {
                 app.tell(`There are no more upcoming events.`);
             }
         })
-        .catch(e => console.error(e));
+        .catch(e => {
+            console.error(e);
+
+            app.tell(printErrorMessage());
+        });
 }
 
 function search(app) {
     const searchType = app.getArgument('search-type');
     const searchKeyword = app.getArgument('search-keyword');
     if (searchType === 'library') {
-        return searchForLibrary(app, searchKeyword);
+        return searchForLibrary(app, searchKeyword || searchType);
     } else {
-        return searchByArticle(app, searchKeyword);
+        return searchByArticle(app, searchKeyword || searchType);
     }
 }
 
 function searchByArticle(app, searchKeyword) {
-    fetch(SEARCH_API, {
-            method: 'POST',
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                "keywords": searchKeyword,
-                "version": "2+",
-                "tags": []
-            })
+    const options = {
+        method: 'POST',
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            "keywords": searchKeyword,
+            "version": "2+",
+            "tags": []
         })
+    };
+
+    console.log('searchByArticle::', SEARCH_API, options);
+
+    fetch(SEARCH_API, options)
         .then(res => res.json())
         .then(result => {
             if (result && result.length > 0) {
@@ -172,15 +197,18 @@ function searchByArticle(app, searchKeyword) {
 
                 if (app.hasSurfaceCapability(app.SurfaceCapabilities.SCREEN_OUTPUT)) {
 
+                    const basicCard = app.buildBasicCard(entry.url.description)
+                        .setTitle(`${entry.result.title} by ${entry.result.author_name}`)
+                        .addButton('Visit the website', entry.url.href)
+
+                    if (entry.url.img) {
+                        basicCard.setImage(entry.url.img, entry.result.title);
+                    }
+
                     app.tell(
                         app.buildRichResponse()
                         .addSimpleResponse(response)
-                        .addBasicCard(
-                            app.buildBasicCard(entry.url.description)
-                            .setTitle(`${entry.result.title} by ${entry.result.author_name}`)
-                            .addButton('Visit the website', entry.url.href)
-                            .setImage(entry.url.img, entry.url.img)
-                        )
+                        .addBasicCard(basicCard)
                     );
 
                 } else if (app.hasSurfaceCapability(app.SurfaceCapabilities.AUDIO_OUTPUT)) {
@@ -192,14 +220,23 @@ function searchByArticle(app, searchKeyword) {
             } else {
                 console.log('no article found', entry);
                 app.data.url = null;
-                app.tell(`Sorry. I could not find anything related to ${searchKeyword}. Try another request.`);
+                app.ask(`Sorry. I could not find any article. Try another request.`, NO_INPUTS);
             }
         })
-        .catch(e => console.error(e));
+        .catch(e => {
+            console.error(e);
+
+            app.tell(printErrorMessage());
+        });
 }
 
 function searchForLibrary(app, searchKeyword) {
-    fetch(NPM_SEARCH_API.replace('#', searchKeyword))
+
+    const searchUrl = NPM_SEARCH_API.replace('#', searchKeyword);
+
+    console.log('searchForLibrary::', searchUrl)
+
+    fetch(searchUrl)
         .then(res => res.json())
         .then(res => {
             if (res && res.results && res.results.length > 0) {
@@ -240,22 +277,36 @@ function searchForLibrary(app, searchKeyword) {
             } else {
                 console.log('no library found', entry);
                 app.data.url = null;
-                app.tell(`Sorry. I could not find any library matching your request.`);
+                app.ask(`Sorry. I could not find any library. Try another request.`, NO_INPUTS);
             }
         })
-        .catch(e => console.error(e));
+        .catch(e => {
+            console.error(e);
+
+            app.tell(printErrorMessage());
+        });
 }
 
 function checkVersion(app) {
+
+    console.log('checkVersion::', DOC_API);
+
     fetch(DOC_API)
         .then(res => res.json())
         .then(res => {
-            app.tell(`The current version of Angular is: ${res.__versionInfo.version}.`)
+            const v = res.__versionInfo;
+            app.tell(`The current version of Angular is: ${v.major}.${v.minor}.${v.patch}. The patch number is ${v.prerelease[1].split('').join('' )}`)
         })
-        .catch(e => console.error(e));
+        .catch(e => {
+            console.error(e);
+
+            app.tell(printErrorMessage());
+        });
 }
 
 function contributors(group, title) {
+
+    console.log('contributors::', CONTRIBUTORS_API, group, title);
 
     return function(app) {
         return fetch(CONTRIBUTORS_API)
@@ -298,14 +349,18 @@ function contributors(group, title) {
                     app.tell(`${response}. Here are 3 of them: ${r().name}, ${r().name} and ${r().name}. Visit angular.io/about to discover more of them.`, NO_INPUTS);
                 }
             })
-            .catch(e => console.error(e));
+            .catch(e => {
+                console.error(e);
+
+                app.tell(printErrorMessage());
+            });
     }
 }
 
 function contributorsOption(app) {
     // let selectedContribName = app.getSelectedOption();
     let selectedContribName = app.getContextArgument('actions_intent_option', 'OPTION').value;
-    console.log('selected member', selectedContribName);
+    console.log('contributorsOption::', 'selected member', selectedContribName);
 
     if (selectedContribName.indexOf('CONTRIBUTOR_') !== 0) {
         const selectedContribHash = selectedContribName.replace('CONTRIBUTOR_', '');
@@ -337,7 +392,11 @@ function contributorsOption(app) {
                     app.tell(`${member.bio}`, NO_INPUTS);
                 }
             })
-            .catch(e => console.error(e));
+            .catch(e => {
+                console.error(e);
+
+                app.tell(printErrorMessage());
+            });
 
     } else {
         app.tell("Sorry, I could not find this memeber's bio. Make sure you've selected the right option from the list.");
